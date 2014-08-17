@@ -1,4 +1,13 @@
 #!/bin/bash
+#
+# lxctl
+#
+# Created on: Aug 17, 2014
+# Author: Roman Finkelnburg
+# Copyright: Roman Finkelnburg (2014)
+# Description: This script starts and stops 'root lvm linux containers' and also controls/
+# manipulates the tty to which the lxc is attached. 
+#
 
 usage()
 {
