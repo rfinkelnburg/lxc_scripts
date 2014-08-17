@@ -1,0 +1,115 @@
+#!/bin/bash
+
+usage()
+{
+	me=`basename $0`
+	echo "USAGE: $me <start|stop> <name> <tty>"
+	exit 1
+}
+
+check_tty()
+{
+	if [ $1 -lt 8 ] || [ $1 -gt 12 ] 
+	then
+		echo "tty '$1' out of range!"
+		usage
+	fi
+	sudo openvt -c $1 clear	> /dev/null 2>&1 
+}
+ 
+write_lightdm()
+{
+	sudo mount /dev/ubuntu-vg/$1 /mnt
+
+	echo "[LightDM]" | sudo tee /mnt/etc/lightdm/lightdm.conf > /dev/null
+	echo "minimum-vt=$2" | sudo tee -a /mnt/etc/lightdm/lightdm.conf > /dev/null
+
+	sudo umount /mnt
+}
+
+set_tty()
+{
+	vt=0
+	if [ $2 ] 
+	then
+		check_tty $2
+		if [ $? == 0 ]
+		then
+			vt=$2
+		else
+			echo "tty '$2' busy!"
+			
+		fi
+	fi
+
+	if [ $vt == 0 ]
+	then
+
+		for vt in {8..12} 
+		do 
+			echo "checkinng tty '$vt' ..." 
+			check_tty $vt
+			if [ $? == 0 ]
+			then
+				break
+			fi	
+		done
+	fi	
+
+	if [ $? != 0 ]
+	then
+		echo "all tty's busy!"
+		exit 1
+	fi	
+
+	#set tty for session
+	echo "setting tty '$vt' for '$1' ..."
+	write_lightdm $1 $vt
+}
+
+start()
+{
+	sudo lxc-info -s -n $1 | grep -q -e RUNNING
+	if [ $? == 0 ]
+	then
+		echo "lxc '$1' is already running ..."
+		exit 1
+	else
+		echo "starting lxc '$1' ..."
+		set_tty $1 $2
+		sudo lxc-start -n $1 -d
+	fi
+}
+
+stop()
+{
+	echo "stopping lxc '$1' ..."
+	sudo lxc-stop -n $1
+}
+
+if [ "$#" -lt 2 ] 
+then
+	usage
+fi
+
+sudo lxc-ls | grep -q -e $2 #check if lxc $2 exists
+if [ $? == 0 ]
+then
+	case "$1" in
+		start) 
+			start $2 $3
+			;;
+  		stop)
+			stop $2
+			;;
+		*)
+			echo "argument '$1' not implemented!"
+			usage
+			;;
+	esac
+else
+	echo "lxc '$2' not found!"
+	usage
+fi
+
+exit 0
