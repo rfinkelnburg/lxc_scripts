@@ -10,9 +10,10 @@
 # lxc's wich should be updated and the path to the lxctl script below.
 #
 
-
 # names of lxc's
-declare -a lxcs=("lxc1" "lxc2" "lxc3")
+declare -a lxcs=(("lxc1" "lxc2" "lxc3")
+
+# path to lxctl
 lxctl=~/bin/lxctl
 
 ######################################################
@@ -22,7 +23,7 @@ declare -a update_cmds=("apt-get update" "apt-get upgrade -y" "apt-get dist-upgr
 # update host system
 for cmd in "${update_cmds[@]}"
 do
-  $cmd
+  sudo $cmd
 done
 
 # update lxc's
@@ -31,28 +32,28 @@ do
   echo "Updating $lxc"
 
   # check lxc state
-  lxc-info -s -n $lxc | grep RUNNING
+  sudo lxc-info -s -n $lxc | grep RUNNING
   lxc_state=$?
   
   # start if not running
   if [ "$lxc_state" -eq 1 ]
   then
-    $lxctl start $lxc
-    lxc-wait -n $lxc -s RUNNING
+    sudo $lxctl start $lxc
+    sudo lxc-wait -n $lxc -s RUNNING
     sleep 10 
   fi
 
   # update lxc ...
   for cmd in "${update_cmds[@]}"
   do
-    lxc-attach -n $lxc -- $cmd
+    sudo lxc-attach -n $lxc -- $cmd
   done
 
   # stop if lxc was not running before
   if [ "$lxc_state" -eq 1 ]
   then
-    $lxctl stop $lxc
-    lxc-wait -n $lxc -s STOPPED
+    sudo $lxctl stop $lxc
+    sudo lxc-wait -n $lxc -s STOPPED
     sleep 3 
   fi
 done
