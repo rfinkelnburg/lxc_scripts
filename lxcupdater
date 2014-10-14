@@ -1,0 +1,58 @@
+#!/bin/bash +x
+#
+# lxcupdater
+#
+# Created on: Oct 15, 2014
+# Author: Roman Finkelnburg
+# Copyright: Roman Finkelnburg (2014)
+# Description: This script updates the pkg's in 'root lvm linux containers' and the host system using the apt infrastructure.
+# Furthermore, it uses the lxctl script to start and stop lxc's for updating which are not running. Please set the names of 
+# lxc's wich should be updated and the path to the lxctl script below.
+#
+
+
+# names of lxc's
+declare -a lxcs=("lxc1" "lxc2" "lxc3")
+lxctl=~/bin/lxctl
+
+######################################################
+# update commands
+declare -a update_cmds=("apt-get update" "apt-get upgrade -y" "apt-get dist-upgrade -y" "apt-get autoremove -y" "apt-get clean")
+
+# update host system
+for cmd in "${update_cmds[@]}"
+do
+  $cmd
+done
+
+# update lxc's
+for lxc in "${lxcs[@]}"
+do
+  echo "Updating $lxc"
+
+  # check lxc state
+  lxc-info -s -n $lxc | grep RUNNING
+  lxc_state=$?
+  
+  # start if not running
+  if [ "$lxc_state" -eq 1 ]
+  then
+    $lxctl start $lxc
+    lxc-wait -n $lxc -s RUNNING
+    sleep 10 
+  fi
+
+  # update lxc ...
+  for cmd in "${update_cmds[@]}"
+  do
+    lxc-attach -n $lxc -- $cmd
+  done
+
+  # stop if lxc was not running before
+  if [ "$lxc_state" -eq 1 ]
+  then
+    $lxctl stop $lxc
+    lxc-wait -n $lxc -s STOPPED
+    sleep 3 
+  fi
+done
