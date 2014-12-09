@@ -11,7 +11,7 @@
 #
 
 # names of lxc's
-declare -a lxcs=(("lxc1" "lxc2" "lxc3")
+declare -a lxcs=("lxc1" "lxc2" "lxc3")
 
 # path to lxctl
 lxctl=~/bin/lxctl
